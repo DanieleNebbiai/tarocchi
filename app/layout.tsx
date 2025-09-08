@@ -5,8 +5,8 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Cartomanti.online - Consulti di Cartomanzia Professionale",
-  description: "Consulti di cartomanzia professionale al telefono. I nostri esperti cartomanti sono disponibili 24/7.",
+  title: "Tarocchi.cloud - Il primo sistema di cartomanzia intelligente",
+  description: "Il primo sistema di cartomanzia intelligente. Risposte vere, sempre disponibili, accessibili ovunque.",
     generator: 'v0.dev'
 }
 

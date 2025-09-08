@@ -24,24 +24,23 @@ export default function HomePage() {
 
         <div className="relative max-w-6xl mx-auto text-center">
           <div className="mystical-glow mb-8">
-            <span className="text-8xl animate-pulse">🔮</span>
+            <span className="text-8xl animate-pulse">⭐️</span>
           </div>
 
           <h1 className="font-playfair text-5xl md:text-7xl font-bold text-earth-900 mb-6 animate-fade-in tracking-tight">
-            Cartomanti.online
+            Tarocchi.cloud
           </h1>
 
           <p className="text-xl md:text-2xl text-earth-700 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Consulti di cartomanzia professionale al telefono. I nostri esperti
-            cartomanti sono disponibili 24/7 per guidarti nel tuo cammino. I
-            primi 15 minuti sono gratuiti per ogni nuovo utente.
+            Il primo sistema di cartomanzia intelligente. Risposte vere, sempre
+            disponibili, accessibili ovunque.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href="/consulto">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-2000 animate-pulse-glow"
+                className="bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse-glow"
               >
                 <Phone className="mr-2 h-5 w-5" />
                 Leggi il Futuro
@@ -60,7 +59,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-terracotta-600" />
-              <span>50+ Cartomanti Esperti</span>
+              <span>Sistema Intelligente</span>
             </div>
           </div>
         </div>
@@ -70,7 +69,7 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-gradient-to-r from-earth-100 to-sage-100">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-playfair text-4xl font-bold text-earth-900 mb-8">
-            Ti senti perso e hai bisogno di risposte?
+            Stanca di cartomanti che confondono?
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -78,10 +77,11 @@ export default function HomePage() {
               <CardContent className="p-6 text-center">
                 <div className="text-4xl mb-4">💔</div>
                 <h3 className="font-semibold text-earth-800 mb-2">
-                  Problemi d'Amore
+                  Manipolazioni
                 </h3>
                 <p className="text-earth-600">
-                  Relazioni complicate, dubbi sul futuro sentimentale
+                  Ti dicono quello che vuoi sentirti dire per tenerti più a
+                  lungo
                 </p>
               </CardContent>
             </Card>
@@ -91,12 +91,12 @@ export default function HomePage() {
               style={{ animationDelay: "0.2s" }}
             >
               <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-4">💼</div>
+                <div className="text-4xl mb-4">💰</div>
                 <h3 className="font-semibold text-earth-800 mb-2">
-                  Carriera e Lavoro
+                  Costi Eccessivi
                 </h3>
                 <p className="text-earth-600">
-                  Decisioni professionali, cambiamenti lavorativi
+                  Numeri a pagamento che prosciugano il portafoglio
                 </p>
               </CardContent>
             </Card>
@@ -106,12 +106,12 @@ export default function HomePage() {
               style={{ animationDelay: "0.4s" }}
             >
               <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-4">🌟</div>
+                <div className="text-4xl mb-4">😵‍💫</div>
                 <h3 className="font-semibold text-earth-800 mb-2">
-                  Crescita Personale
+                  Più Confusa
                 </h3>
                 <p className="text-earth-600">
-                  Scoprire il tuo potenziale, superare ostacoli
+                  Ti senti più spaesata dopo la chiamata che prima
                 </p>
               </CardContent>
             </Card>
@@ -124,11 +124,11 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="font-playfair text-4xl font-bold text-earth-900 mb-6">
-              La Soluzione è a Portata di Chiamata
+              Tarocchi.cloud è la Rivoluzione
             </h2>
             <p className="text-xl text-earth-700 max-w-3xl mx-auto">
-              I nostri cartomanti esperti ti offrono consulti personalizzati e
-              accurati, disponibili immediatamente al telefono.
+              Un sistema intelligente che sfrutta testi oggettivi della
+              letteratura esoterica per risposte vere, coerenti e immediate.
             </p>
           </div>
 
@@ -138,10 +138,10 @@ export default function HomePage() {
                 <Phone className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-semibold text-earth-800 mb-2">
-                Chiamata Immediata
+                Risposte Immediate
               </h3>
               <p className="text-earth-600">
-                Connessione istantanea con i nostri esperti
+                Quando ne hai più bisogno, subito
               </p>
             </div>
 
@@ -150,10 +150,10 @@ export default function HomePage() {
                 <Shield className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-semibold text-earth-800 mb-2">
-                Totale Riservatezza
+                Nessuna Manipolazione
               </h3>
               <p className="text-earth-600">
-                I tuoi segreti sono al sicuro con noi
+                Solo risposte scientificamente strutturate
               </p>
             </div>
 
@@ -162,10 +162,10 @@ export default function HomePage() {
                 <Star className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-semibold text-earth-800 mb-2">
-                Cartomanti Certificati
+                Sempre Disponibile
               </h3>
               <p className="text-earth-600">
-                Oltre 20 anni di esperienza media
+                Sistema cloud: preciso, accessibile ovunque
               </p>
             </div>
 
@@ -174,11 +174,9 @@ export default function HomePage() {
                 <Sparkles className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-semibold text-earth-800 mb-2">
-                Letture Accurate
+                Consulti Illimitati
               </h3>
-              <p className="text-earth-600">
-                Previsioni precise e consigli pratici
-              </p>
+              <p className="text-earth-600">30 giorni gratis, poi 22€/mese</p>
             </div>
           </div>
         </div>
@@ -202,10 +200,10 @@ export default function HomePage() {
                 1
               </div>
               <h3 className="font-semibold text-earth-800 mb-4 text-xl">
-                Scegli il Tuo Piano
+                Prova Gratis
               </h3>
               <p className="text-earth-600">
-                Seleziona il pacchetto di minuti più adatto alle tue esigenze
+                30 giorni completamente gratuiti per testare il sistema
               </p>
               {/* Connecting line */}
               <div className="hidden md:block absolute top-6 left-1/2 w-full h-0.5 bg-gradient-to-r from-sage-300 to-terracotta-300 transform translate-x-6" />
@@ -216,10 +214,10 @@ export default function HomePage() {
                 2
               </div>
               <h3 className="font-semibold text-earth-800 mb-4 text-xl">
-                Chiama Subito
+                Fai le Tue Domande
               </h3>
               <p className="text-earth-600">
-                Vieni connesso immediatamente con un cartomante disponibile
+                Consulti illimitati, quando vuoi, senza attese
               </p>
               {/* Connecting line */}
               <div className="hidden md:block absolute top-6 left-1/2 w-full h-0.5 bg-gradient-to-r from-terracotta-300 to-earth-300 transform translate-x-6" />
@@ -230,12 +228,99 @@ export default function HomePage() {
                 3
               </div>
               <h3 className="font-semibold text-earth-800 mb-4 text-xl">
-                Ricevi le Risposte
+                Ricevi Risposte Vere
               </h3>
               <p className="text-earth-600">
-                Ottieni consigli personalizzati e previsioni accurate per il tuo
-                futuro
+                Interpretazioni scientifiche basate sulla tradizione autentica
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-earth-50 to-sage-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-playfair text-4xl font-bold text-earth-900 mb-6">
+              Recensioni Autentiche
+            </h2>
+            <p className="text-xl text-earth-700">
+              Cosa dicono i nostri utenti
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-sage-500 to-sage-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div className="mb-4">
+                <div className="flex justify-center mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className="h-4 w-4 text-yellow-500 fill-current"
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="text-earth-700 mb-4 italic text-sm leading-relaxed">
+                "Mi ha aiutato senza chiedermi nulla in cambio. Finalmente ho
+                trovato risposte oneste."
+              </p>
+              <div className="text-xs text-earth-500">
+                <p className="font-medium">Lucia, 54 anni</p>
+                <p>Verificata ✓</p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-terracotta-500 to-terracotta-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div className="mb-4">
+                <div className="flex justify-center mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className="h-4 w-4 text-yellow-500 fill-current"
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="text-earth-700 mb-4 italic text-sm leading-relaxed">
+                "È subito diverso il mio riferimento onestissimo. Niente più
+                truffe telefoniche."
+              </p>
+              <div className="text-xs text-earth-500">
+                <p className="font-medium">Marco, 62 anni</p>
+                <p>Verificata ✓</p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-earth-500 to-earth-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div className="mb-4">
+                <div className="flex justify-center mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className="h-4 w-4 text-yellow-500 fill-current"
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="text-earth-700 mb-4 italic text-sm leading-relaxed">
+                "Con Tarocchi.cloud mi sono sentita ascoltata e capita. Risposte
+                precise."
+              </p>
+              <div className="text-xs text-earth-500">
+                <p className="font-medium">Giulia, 37 anni</p>
+                <p>Verificata ✓</p>
+              </div>
             </div>
           </div>
         </div>
@@ -245,31 +330,29 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-earth-900 text-white">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="font-playfair text-3xl font-bold mb-12">
-            Perché Scegliere Cartomanti.online
+            Perché Scegliere Tarocchi.cloud
           </h2>
 
           <div className="grid md:grid-cols-4 gap-8">
             <div className="floating">
-              <div className="text-4xl font-bold text-sage-400 mb-2">
-                50,000+
-              </div>
-              <p className="text-earth-200">Consulti Completati</p>
+              <div className="text-4xl font-bold text-sage-400 mb-2">∞</div>
+              <p className="text-earth-200">Consulti Illimitati</p>
             </div>
             <div className="floating" style={{ animationDelay: "0.2s" }}>
               <div className="text-4xl font-bold text-terracotta-400 mb-2">
                 24/7
               </div>
-              <p className="text-earth-200">Disponibilità</p>
+              <p className="text-earth-200">Sempre Attivo</p>
             </div>
             <div className="floating" style={{ animationDelay: "0.4s" }}>
-              <div className="text-4xl font-bold text-sage-400 mb-2">4.9★</div>
-              <p className="text-earth-200">Valutazione Media</p>
+              <div className="text-4xl font-bold text-sage-400 mb-2">30</div>
+              <p className="text-earth-200">Giorni Gratis</p>
             </div>
             <div className="floating" style={{ animationDelay: "0.6s" }}>
               <div className="text-4xl font-bold text-terracotta-400 mb-2">
-                20+
+                22€
               </div>
-              <p className="text-earth-200">Anni di Esperienza</p>
+              <p className="text-earth-200">Prezzo Fisso/Mese</p>
             </div>
           </div>
         </div>

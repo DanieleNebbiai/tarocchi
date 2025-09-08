@@ -104,7 +104,7 @@ function ConsultoPageContent() {
             <div className="absolute inset-0 rounded-full bg-gradient-conic from-sage-400/20 via-terracotta-400/20 to-earth-400/20 animate-spin-slow" />
 
             {/* Center crystal */}
-            <div className="relative z-10 text-8xl animate-pulse">🔮</div>
+            <div className="relative z-10 text-8xl animate-pulse">⭐️</div>
 
             {/* Mystical particles inside */}
             <div className="absolute inset-0 rounded-full">
@@ -226,7 +226,7 @@ export default function ConsultoPage() {
         <div className="w-full min-h-screen bg-gradient-to-br from-earth-900 via-sage-900 to-terracotta-900 text-white flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 bg-sage-400/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <span className="text-2xl">🔮</span>
+              <span className="text-2xl">⭐️</span>
             </div>
             <p className="text-sage-300">Caricamento consulto...</p>
           </div>

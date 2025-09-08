@@ -146,7 +146,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-sage-50 to-terracotta-50 border-sage-200">
         <DialogHeader>
           <DialogTitle className="text-center font-playfair text-2xl text-earth-900 flex items-center justify-center gap-2">
-            <span className="text-3xl">🔮</span>
+            <span className="text-3xl">⭐️</span>
             Accedi al Tuo Account
           </DialogTitle>
         </DialogHeader>

@@ -81,13 +81,13 @@ export default function Header({ onAuthClick, dark = false }: HeaderProps) {
         <Link href="/" className="flex items-center gap-3 group">
           <img 
             src="/favicon.ico" 
-            alt="Cartomanti Logo" 
+            alt="Tarocchi.cloud Logo" 
             className="w-8 h-8 group-hover:animate-pulse"
           />
           <span
             className={`font-playfair text-2xl font-bold ${textColor} ${hoverColor} transition-colors`}
           >
-            Cartomanti.online
+            Tarocchi.cloud
           </span>
         </Link>
 
