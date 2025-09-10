@@ -6,8 +6,12 @@ const openai = new OpenAI({
 });
 
 export async function POST(request: Request) {
+  const apiStartTime = performance.now();
+  
   try {
+    const parseStart = performance.now();
     const { text, voice = "nova", category } = await request.json();
+    const parseEnd = performance.now();
 
     // Get voice based on category (all female voices)
     let selectedVoice = voice;
@@ -33,6 +37,16 @@ export async function POST(request: Request) {
       }
     }
 
+    console.log('🔊 [TIMING] TTS API: Starting text-to-speech conversion', {
+      textLength: text.length,
+      textPreview: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+      selectedVoice,
+      category,
+      parseTime: Math.round(parseEnd - parseStart),
+      timestamp: new Date().toISOString()
+    });
+
+    const ttsStart = performance.now();
     const mp3 = await openai.audio.speech.create({
       model: "tts-1", // Fastest TTS model instead of tts-1-hd
       voice: selectedVoice as any,
@@ -40,10 +54,22 @@ export async function POST(request: Request) {
       instructions:
         "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
       response_format: "mp3",
-      speed: 1.1, // Slightly faster speech for reduced latency
+      speed: 0.85, // Slower, more contemplative pace for tarot reading
     });
+    const ttsEnd = performance.now();
 
+    const bufferStart = performance.now();
     const buffer = Buffer.from(await mp3.arrayBuffer());
+    const bufferEnd = performance.now();
+    const totalApiTime = performance.now() - apiStartTime;
+    
+    console.log('✅ [TIMING] TTS API: Audio generation completed', {
+      openaiTtsTime: Math.round(ttsEnd - ttsStart),
+      bufferTime: Math.round(bufferEnd - bufferStart),
+      totalApiTime: Math.round(totalApiTime),
+      audioSize: buffer.length,
+      timestamp: new Date().toISOString()
+    });
 
     return new NextResponse(buffer, {
       headers: {

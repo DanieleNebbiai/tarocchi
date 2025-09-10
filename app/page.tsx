@@ -69,7 +69,7 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-gradient-to-r from-earth-100 to-sage-100">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-playfair text-4xl font-bold text-earth-900 mb-8">
-            Stanca di cartomanti che confondono?
+            Stanca di Tarocchi che confondono?
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">

@@ -35,8 +35,31 @@ export function useTrialUsage() {
         .single();
 
       if (error) {
-        console.error("Error loading user profile:", error);
-        // Create default usage - user needs to activate trial
+        // Profile doesn't exist, create it if error is about missing rows
+        if (error.code === 'PGRST116') {
+          console.log("Profile not found, creating new profile for user:", user.id);
+          
+          // Try to create a new profile for this user
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: user.id,
+              email: user.email,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+
+          if (insertError) {
+            console.warn("Could not create user profile:", insertError.message);
+            // Continue with default usage even if profile creation fails
+          } else {
+            console.log("Successfully created profile for user:", user.id);
+          }
+        } else {
+          console.error("Error loading user profile:", error);
+        }
+
+        // Create default usage - user can still use the app without profile
         const newUsage: TrialUsage = {
           userId: user.id,
           activatedAt: null,
@@ -97,17 +120,21 @@ export function useTrialUsage() {
 
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
+          email: user.email,
           free_trial_activated_at: now.toISOString(),
           free_trial_expires_at: expiryDate.toISOString(),
+          created_at: now.toISOString(),
           updated_at: now.toISOString(),
-        })
-        .eq("id", user.id);
+        });
 
       if (error) {
         console.error("Error activating trial:", error);
         return;
       }
+
+      console.log("Trial activated successfully for user:", user.id);
 
       // Reload usage to reflect new trial activation
       await loadUsageFromSupabase();

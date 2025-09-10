@@ -1,40 +1,40 @@
-import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import { createClient } from "@/lib/supabase/server";
 
 // Skip Stripe initialization during build if API key is not set
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy'
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_dummy";
 
 const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-07-30.basil',
-})
+  apiVersion: "2025-08-27.basil",
+});
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = await createClient();
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Non autenticato' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     }
 
     // Get user profile
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
     if (!profile) {
       return NextResponse.json(
-        { error: 'Profilo utente non trovato' },
+        { error: "Profilo utente non trovato" },
         { status: 404 }
-      )
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -42,33 +42,38 @@ export async function POST(req: Request) {
       line_items: [
         {
           price_data: {
-            currency: 'eur',
+            currency: "eur",
             product_data: {
-              name: 'Piano Mensile - Cartomanti',
-              description: 'Accesso illimitato alle conversazioni con cartomanti esperti',
+              name: "Piano Mensile - Tarocchi",
+              description:
+                "Accesso illimitato alle conversazioni con tarocchi esperti",
             },
             unit_amount: 2900, // €29.00 in cents
             recurring: {
-              interval: 'month',
+              interval: "month",
             },
           },
           quantity: 1,
         },
       ],
-      mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.cartomanti.online'}/consulto?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.cartomanti.online'}/consulto?canceled=true`,
+      mode: "subscription",
+      success_url: `${
+        process.env.NEXT_PUBLIC_BASE_URL || "https://www.tarocchi.online"
+      }/consulto?success=true`,
+      cancel_url: `${
+        process.env.NEXT_PUBLIC_BASE_URL || "https://www.tarocchi.online"
+      }/consulto?canceled=true`,
       metadata: {
         user_id: user.id,
       },
-    })
+    });
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Error creating Stripe checkout session:', error)
+    console.error("Error creating Stripe checkout session:", error);
     return NextResponse.json(
-      { error: 'Errore durante la creazione della sessione di pagamento' },
+      { error: "Errore durante la creazione della sessione di pagamento" },
       { status: 500 }
-    )
+    );
   }
 }

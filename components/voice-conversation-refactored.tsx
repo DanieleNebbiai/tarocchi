@@ -11,6 +11,7 @@ import ConversationControls from "@/components/conversation-controls";
 interface VoiceConversationProps {
   selectedOperator?: string;
   selectedCategory?: string;
+  selectedDeck?: string;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Error) => void;
@@ -26,6 +27,7 @@ interface ConversationMessage {
 export default function VoiceConversation({
   selectedOperator,
   selectedCategory,
+  selectedDeck,
   onConnect,
   onDisconnect,
   onError,
@@ -79,6 +81,8 @@ export default function VoiceConversation({
   const audioProcessor = AudioProcessor({
     selectedOperator,
     selectedCategory,
+    selectedDeck,
+    userId: usage?.userId, // Pass user ID for name extraction
     onTTSStart: () => setIsAISpeaking(true),
     onTTSEnd: handleTTSEnd,
     onTTSError: handleTTSError,
@@ -86,15 +90,24 @@ export default function VoiceConversation({
 
   // Handle audio ready from voice recorder
   async function handleAudioReady(audioBlob: Blob) {
-    // No need to check limits here - we check at conversation start
+    const conversationStartTime = performance.now();
+    
+    console.log('🎤 [TIMING] USER INPUT: User finished speaking', {
+      audioSize: audioBlob.size,
+      audioType: audioBlob.type,
+      conversationStep: conversation.length + 1,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       setIsProcessing(true);
-
+      
+      const processingStartTime = performance.now();
       const result = await audioProcessor.processConversationFlow(
         audioBlob,
         conversation
       );
+      const processingEndTime = performance.now();
 
       // Update conversation history
       const newConversation = [
@@ -104,11 +117,16 @@ export default function VoiceConversation({
       ];
       setConversation(newConversation);
 
-      console.log("💬 Main: User said:", result.userMessage);
-      console.log(
-        "💬 Main: AI replied:",
-        result.aiResponse.substring(0, 100) + "..."
-      );
+      const totalConversationTime = performance.now() - conversationStartTime;
+      
+      console.log('✅ [TIMING] CONVERSATION COMPLETE: Full turn completed', {
+        userMessage: result.userMessage,
+        aiResponse: result.aiResponse.substring(0, 100) + (result.aiResponse.length > 100 ? '...' : ''),
+        processingTime: Math.round(processingEndTime - processingStartTime) + 'ms',
+        totalTurnTime: Math.round(totalConversationTime) + 'ms',
+        conversationLength: newConversation.length,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error("❌ Main: Error processing audio:", error);
       onError?.(error as Error);

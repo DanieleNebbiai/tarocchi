@@ -20,6 +20,73 @@ function ConsultoPageContent() {
   const [particles, setParticles] = useState<
     Array<{ id: number; x: number; y: number; delay: number }>
   >([]);
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [selectedOperatorCategory, setSelectedOperatorCategory] = useState<
+    string | null
+  >(null);
+  const [consultationStarted, setConsultationStarted] = useState(false);
+
+  const tarotDecks = [
+    "Sibille",
+    "Motherpeace",
+    "Sola Busca",
+    "Petit Eitteilla",
+    "Le Grand Eitteilla",
+    "Tarocco Arlecchino",
+    "The Book of Thoth",
+    "Carte da gioco tradizionali",
+    "Lenormand Game of Hope",
+    "Golden Dawn",
+    "Tarocchi di Marsiglia",
+    "Rider-Waite-Smith",
+  ];
+
+  const operatorCategories = [
+    {
+      id: "amore",
+      name: "Amore e Relazioni",
+      icon: "💕",
+      description: "Consulti sentimentali",
+    },
+    {
+      id: "lavoro",
+      name: "Lavoro e Carriera",
+      icon: "💼",
+      description: "Crescita professionale",
+    },
+    {
+      id: "famiglia",
+      name: "Famiglia",
+      icon: "👨‍👩‍👧‍👦",
+      description: "Relazioni familiari",
+    },
+    {
+      id: "denaro",
+      name: "Denaro e Finanze",
+      icon: "💰",
+      description: "Situazione economica",
+    },
+    {
+      id: "spiritualita",
+      name: "Spiritualità",
+      icon: "🕯️",
+      description: "Crescita interiore",
+    },
+    {
+      id: "crescita",
+      name: "Crescita Personale",
+      icon: "🌱",
+      description: "Sviluppo personale",
+    },
+  ];
+
+  const canStartConsultation = selectedDeck && selectedOperatorCategory;
+
+  const handleStartConsultation = () => {
+    if (canStartConsultation) {
+      setConsultationStarted(true);
+    }
+  };
 
   useEffect(() => {
     // Generate floating particles
@@ -94,6 +161,103 @@ function ConsultoPageContent() {
       </div>
 
       <div className="relative pt-20 pb-16 px-4 flex flex-col items-center justify-center min-h-screen max-w-full">
+        {/* Configuration Overlay - Only shown before consultation starts */}
+        {!consultationStarted && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-playfair font-bold text-white mb-4">
+                  Configura il Tuo Consulto
+                </h2>
+                <p className="text-sage-300 text-lg">
+                  Scegli l'argomento e il mazzo di carte per iniziare
+                </p>
+              </div>
+
+              {/* Category Selection */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">
+                  1. Su cosa vuoi essere guidato?
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {operatorCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedOperatorCategory(category.id)}
+                      className={`p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105 ${
+                        selectedOperatorCategory === category.id
+                          ? "border-sage-400 bg-sage-600/30 text-white"
+                          : "border-sage-400/30 bg-white/10 text-sage-300 hover:border-sage-400/60 hover:bg-sage-600/20"
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">{category.icon}</div>
+                      <div className="font-medium text-sm">{category.name}</div>
+                      <div className="text-xs opacity-75 mt-1">
+                        {category.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Deck Selection */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">
+                  2. Scegli il tuo mazzo di carte
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                  {tarotDecks.map((deck, index) => (
+                    <button
+                      key={deck}
+                      onClick={() => setSelectedDeck(deck)}
+                      className={`p-3 rounded-lg border transition-all duration-300 text-center transform hover:scale-105 ${
+                        selectedDeck === deck
+                          ? "border-sage-400 bg-sage-600/30 text-white"
+                          : "border-sage-400/30 bg-white/10 text-sage-300 hover:border-sage-400/60 hover:bg-sage-600/20"
+                      }`}
+                    >
+                      <div className="text-lg mb-1">
+                        {
+                          [
+                            "🔮",
+                            "🌙",
+                            "⭐",
+                            "🃏",
+                            "✨",
+                            "🎭",
+                            "📜",
+                            "♠️",
+                            "🎪",
+                            "🌟",
+                            "🎨",
+                            "🎯",
+                          ][index]
+                        }
+                      </div>
+                      <div className="text-xs">{deck}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Start Button */}
+              <div className="text-center">
+                <button
+                  onClick={handleStartConsultation}
+                  disabled={!canStartConsultation}
+                  className={`px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 ${
+                    canStartConsultation
+                      ? "bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
+                      : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  🔮 Inizia Consulto
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Crystal Ball */}
         <div className="relative mb-12">
           <div className="crystal-ball w-80 h-80 rounded-full bg-gradient-to-br from-sage-400/20 via-terracotta-400/30 to-earth-400/20 backdrop-blur-sm border border-white/20 flex items-center justify-center relative overflow-hidden">
@@ -130,59 +294,55 @@ function ConsultoPageContent() {
           />
         </div>
 
-        {/* Selected Operator Info */}
-        {selectedOperator && (
-          <div className="text-center backdrop-blur-sm rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {selectedOperator}
-            </h2>
-            {selectedCategory && (
-              <span className="inline-block px-4 py-2 bg-sage-600 text-white rounded-full text-sm font-medium">
-                {selectedCategory}
-              </span>
+        {/* Call Status - only shown when consultation started */}
+        {consultationStarted && (
+          <div className="text-center mb-8">
+            {isCallActive && (
+              <div className="text-2xl font-mono text-sage-300 mb-4 animate-pulse">
+                {formatTime(timer)}
+              </div>
             )}
           </div>
         )}
 
-        {/* Call Status */}
-        <div className="text-center mb-8">
-          {isCallActive && (
-            <div className="text-2xl font-mono text-sage-300 mb-4 animate-pulse">
-              {formatTime(timer)}
+        {/* Selected Configuration Display - only shown when consultation started */}
+        {consultationStarted && selectedOperatorCategory && selectedDeck && (
+          <div className="text-center mb-6 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 max-w-md mx-auto">
+            <h4 className="text-lg font-semibold text-white mb-2">
+              🔮 Consulto Attivo
+            </h4>
+            <div className="text-sm text-sage-300">
+              <div>
+                {
+                  operatorCategories.find(
+                    (c) => c.id === selectedOperatorCategory
+                  )?.name
+                }
+              </div>
+              <div>{selectedDeck}</div>
             </div>
-          )}
-        </div>
-
-        {/* Operator Selection */}
-        {!selectedOperator && (
-          <div className="text-center mb-8 bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 max-w-md mx-auto">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Seleziona un Operatore
-            </h3>
-            <p className="text-sage-300 mb-4">
-              Scegli dalla nostra lista di specialisti per iniziare il consulto
-            </p>
-            <Link
-              href="/operatori"
-              className="inline-flex items-center px-6 py-3 bg-sage-600 hover:bg-sage-700 text-white rounded-lg transition-colors"
-            >
-              Visualizza Operatori
-            </Link>
           </div>
         )}
 
-        {/* Voice Conversation Component */}
-        <div className="mb-8">
-          <VoiceConversation
-            selectedOperator={selectedOperator || undefined}
-            selectedCategory={selectedCategory || undefined}
-            onConnect={handleVoiceConnect}
-            onDisconnect={handleVoiceDisconnect}
-            onError={handleVoiceError}
-            onUpgrade={handleUpgrade}
-            onLoginRequired={handleLoginRequired}
-          />
-        </div>
+        {/* Voice Conversation Component - only shown when consultation started */}
+        {consultationStarted && selectedDeck && selectedOperatorCategory && (
+          <div className="mb-8">
+            <VoiceConversation
+              selectedOperator={
+                operatorCategories.find(
+                  (c) => c.id === selectedOperatorCategory
+                )?.name || undefined
+              }
+              selectedCategory={selectedOperatorCategory}
+              selectedDeck={selectedDeck}
+              onConnect={handleVoiceConnect}
+              onDisconnect={handleVoiceDisconnect}
+              onError={handleVoiceError}
+              onUpgrade={handleUpgrade}
+              onLoginRequired={handleLoginRequired}
+            />
+          </div>
+        )}
 
         {/* Mystical Elements - contained within viewport */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">

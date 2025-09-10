@@ -26,7 +26,7 @@ const plan = {
   price: 29,
   features: [
     "Accesso illimitato alle conversazioni",
-    "Cartomanti esperti disponibili 24/7",
+    "Tarocchi esperti disponibili 24/7",
     "Supporto clienti prioritario",
   ],
 };
