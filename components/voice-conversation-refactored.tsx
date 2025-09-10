@@ -7,6 +7,7 @@ import PaymentModal from "@/components/payment-modal";
 import VoiceRecorder from "@/components/voice-recorder";
 import AudioProcessor from "@/components/audio-processor";
 import ConversationControls from "@/components/conversation-controls";
+import ImmediateFeedback from "@/components/immediate-feedback";
 
 interface VoiceConversationProps {
   selectedOperator?: string;
@@ -43,6 +44,7 @@ export default function VoiceConversation({
   const [hasStarted, setHasStarted] = useState(false);
   const [isFirstUserInput, setIsFirstUserInput] = useState(true);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [isPlayingFeedback, setIsPlayingFeedback] = useState(false);
 
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -88,6 +90,13 @@ export default function VoiceConversation({
     onTTSError: handleTTSError,
   });
 
+  // Initialize immediate feedback system
+  const immediateFeedback = ImmediateFeedback({
+    selectedCategory,
+    onFeedbackStart: () => setIsPlayingFeedback(true),
+    onFeedbackEnd: () => setIsPlayingFeedback(false),
+  });
+
   // Handle audio ready from voice recorder
   async function handleAudioReady(audioBlob: Blob) {
     const conversationStartTime = performance.now();
@@ -98,6 +107,9 @@ export default function VoiceConversation({
       conversationStep: conversation.length + 1,
       timestamp: new Date().toISOString()
     });
+
+    // Play immediate feedback to fill silence while processing
+    immediateFeedback.playImmediateFeedback();
 
     try {
       setIsProcessing(true);
@@ -332,7 +344,7 @@ export default function VoiceConversation({
         sessionStartTime={sessionStartTime}
         isListening={isListening}
         isProcessing={isProcessing}
-        isAISpeaking={isAISpeaking}
+        isAISpeaking={isAISpeaking || isPlayingFeedback}
         authLoading={authLoading}
         isUsageLoading={isUsageLoading}
         authIsAuthenticated={authIsAuthenticated}
@@ -343,8 +355,9 @@ export default function VoiceConversation({
         onLoginRequired={onLoginRequired}
       />
 
-      {/* Hidden audio element for playing TTS */}
+      {/* Hidden audio elements */}
       <audio ref={audioProcessor.audioRef} style={{ display: "none" }} />
+      <audio ref={immediateFeedback.audioRef} style={{ display: "none" }} />
 
       {/* Payment Modal */}
       <PaymentModal

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   
   try {
     const parseStart = performance.now();
-    const { text, voice = "nova", category } = await request.json();
+    const { text, voice = "nova", category, immediate = false } = await request.json();
     const parseEnd = performance.now();
 
     // Get voice based on category (all female voices)
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       textPreview: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
       selectedVoice,
       category,
+      immediate: immediate,
       parseTime: Math.round(parseEnd - parseStart),
       timestamp: new Date().toISOString()
     });
@@ -51,10 +52,11 @@ export async function POST(request: Request) {
       model: "tts-1", // Fastest TTS model instead of tts-1-hd
       voice: selectedVoice as any,
       input: text,
-      instructions:
-        "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
+      instructions: immediate 
+        ? "Parla in modo naturale e spontaneo, come una cartomante che risponde istintivamente."
+        : "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
       response_format: "mp3",
-      speed: 0.85, // Slower, more contemplative pace for tarot reading
+      speed: immediate ? 0.75 : 0.85, // Slower for immediate feedback, normal for main responses
     });
     const ttsEnd = performance.now();
 
