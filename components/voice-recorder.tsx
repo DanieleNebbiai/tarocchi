@@ -32,14 +32,14 @@ export default function VoiceRecorder({
   // Initialize MediaRecorder for OpenAI Whisper
   const initializeMediaRecorder = async () => {
     try {
-      console.log('🎤 VoiceRecorder: Requesting microphone access...');
+      // Requesting microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('🎤 VoiceRecorder: Microphone access granted');
+      // Microphone access granted
       
       streamRef.current = stream;
       
       // Set up audio context for voice activity detection
-      console.log('🎤 VoiceRecorder: Setting up AudioContext for VAD...');
+      // Setting up AudioContext for VAD
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
       // Resume context if suspended
@@ -62,11 +62,7 @@ export default function VoiceRecorder({
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
       
-      console.log('🎤 VoiceRecorder: AudioContext setup complete:', {
-        state: audioContext.state,
-        sampleRate: audioContext.sampleRate,
-        bufferSize: analyser.frequencyBinCount
-      });
+      // AudioContext setup complete
       
       // Try different MIME types for better compatibility
       let mimeType = 'audio/webm;codecs=opus';
@@ -86,10 +82,10 @@ export default function VoiceRecorder({
       const mediaRecorder = new MediaRecorder(stream, options);
       
       mediaRecorder.ondataavailable = (event) => {
-        console.log('🎤 VoiceRecorder: Audio data available:', event.data.size, 'bytes');
+        // Audio data received
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log('🎤 VoiceRecorder: Total chunks now:', audioChunksRef.current.length);
+          // Audio chunks collected
         } else {
           console.log('🎤 VoiceRecorder: Warning: received 0-size audio chunk');
         }
@@ -105,13 +101,13 @@ export default function VoiceRecorder({
         
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
-          console.log('🎤 VoiceRecorder: Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
+          // Audio blob created
           audioChunksRef.current = [];
           
           if (audioBlob.size > 0) {
             console.log('🎤 VoiceRecorder: Sending audio to parent component...');
             await onAudioReady(audioBlob);
-            console.log('🎤 VoiceRecorder: Audio processing completed');
+            // Audio processing completed
           } else {
             console.error('🎤 VoiceRecorder: No audio data recorded - blob size is 0');
           }
@@ -179,7 +175,7 @@ export default function VoiceRecorder({
     
     // Log audio levels more frequently for debugging
     if (Date.now() % 1000 < 100) {
-      console.log('🎤 VoiceRecorder: Audio level:', Math.round(average), 'silence threshold:', silenceThreshold, 'min level:', minimumSpeechLevel, 'AI speaking:', isAISpeaking);
+      // Audio level monitoring (removed verbose logging)
     }
     
     if (average < silenceThreshold || average < minimumSpeechLevel) {

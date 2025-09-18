@@ -54,14 +54,13 @@ export async function POST(request: Request) {
 
     const ttsStart = performance.now();
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1", // Standard TTS model
+      model: "gpt-4o-mini-tts", // Supports instructions parameter
       voice: selectedVoice as any,
       input: text,
-      instructions: immediate
-        ? "Parla in modo naturale e spontaneo, come una cartomante che risponde istintivamente."
-        : "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
+      // Use same instructions for both immediate and normal TTS
+      instructions: "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
       response_format: "mp3",
-      speed: immediate ? 0.85 : 0.85, // Slower for immediate feedback, normal for main responses
+      speed: 0.85, // Same speed for both immediate and normal responses
     });
     const ttsEnd = performance.now();
 

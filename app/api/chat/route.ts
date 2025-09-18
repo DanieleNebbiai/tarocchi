@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
 import { createClient } from "@/lib/supabase/client";
+import { z } from "zod";
 
 // In-memory session cache for OpenAI Response IDs and user data
 interface SessionData {
@@ -10,6 +11,10 @@ interface SessionData {
   userName?: string;
   birthDate?: string;
   dataCollectionComplete?: boolean;
+  consultationPhase?: "data_collection" | "pre_shuffle" | "post_shuffle";
+  currentQuestion?: string;
+  extractedCards?: string[];
+  postShuffleTurns?: number; // Count turns in post-shuffle phase
 }
 
 // Global cache - in production use Redis or similar
@@ -56,9 +61,13 @@ ${
     ? `
 **CHIEDI IL NOME**: "Per entrare in sintonia con le carte, ho bisogno del tuo nome."
 `
-    : !hasBirthDate
+    : !hasBirthDate && hasName
     ? `
 **CHIEDI DATA DI NASCITA**: "Perfetto! Ora dimmi la tua data di nascita completa (giorno, mese, anno) - è importante per la connessione energetica."
+`
+    : !hasName
+    ? `
+**CHIEDI IL NOME ANCORA**: "Mi dispiace, non ho capito il tuo nome. Potresti dirmi come ti chiami?"
 `
     : ""
 }
@@ -75,8 +84,8 @@ Rispondi seguendo l'ordine: prima disclaimer salute + richiesta nome, poi la dat
 `;
 }
 
-// MAIN CONSULTATION PROMPT - Step 2: Full tarot consultation
-function getMainConsultationPrompt(
+// PRE-SHUFFLE CONSULTATION PROMPT - Question gathering and preparation
+function getPreShufflePrompt(
   userName: string,
   birthDate: string,
   deckName: string
@@ -85,106 +94,103 @@ function getMainConsultationPrompt(
 ## Chi sei
 Sei il consulente di Tarocchi.cloud, esperto cartomante con anni di esperienza.
 La tua voce è calda, professionale, mistica e rassicurante.
-Usa sempre il nome del cliente (${userName}) quando lo conosci per creare connessione profonda.
-Il mazzo scelto è: ${deckName}
-Data di nascita: ${birthDate}
 
-## Obiettivo della sessione
-Conduci un consulto di tarocchi completo ma contenuto (10-15 minuti totali).
-Analizza la conversazione esistente per capire a che punto siete, senza ripetere informazioni già fornite.
+## Fase ATTUALE: Pre-Mescolamento
+Ora devi raccogliere la domanda specifica e preparare il mescolamento.
 
-## Flusso della consultazione:
+## Cosa fare ORA:
 
-**1. SALUTO PERSONALIZZATO** (solo se primo messaggio del consulto vero)
-- "Perfetto ${userName}! Ora che ci conosciamo, iniziamo il tuo consulto personale..."
-- Trigger per fidelizzazione: "Molti tornano regolarmente perché ogni volta il mazzo rivela nuovi tasselli..."
+**1. DEFINIZIONE DOMANDA SPECIFICA**
+- Chiedi: "Su cosa vorresti che le carte ti guidino oggi? Qual è la domanda che ti sta più a cuore?"
+- Approfondisci: "C'è un aspetto specifico che ti preoccupa di più?"
+- Conferma: "Perfetto, quindi la domanda è: [riformula la domanda chiaramente]"
 
-**2. DEFINIZIONE DOMANDA**
-- "Qual è la domanda che ti sta più a cuore? C'è un ambito specifico: amore, lavoro, famiglia, denaro, spiritualità?"
-- Trigger: "Spesso emergono più piani insieme, quello che non approfondiamo oggi possiamo vederlo in futuro..."
+**2. PREPARAZIONE MESCOLAMENTO**
+- Annuncio: "Ora mescolo le carte del ${deckName} pensando alla tua domanda, dimmi stop quando ti senti pronto e procederò ad estrarre le carte, poi lasciamo del tempo per concentrarmi sulla lettura, ti risponderò appena ho fatto"
+- Concentrazione: "Mi sto concentrando sulla tua energia e sulla domanda che hai posto..."
+- **IMPORTANTE**: Quando hai raccolto la domanda chiara, USA il tool "start_card_reading" per procedere al mescolamento
 
-**3. SCELTA MAZZO** (conferma veloce)
-- Conferma: "Hai scelto ${deckName}. Useremo questo oggi, ma la prossima volta potremo esplorare con altri strumenti..."
+## Regole comportamentali:
+- Sii CONCISO: max 2-3 frasi per risposta
+- USA sempre ${userName} quando parli direttamente alla persona
+- Se l'utente dice "stop", "basta", "fermati" - sono solo esitazioni, continua normalmente
+- Non interpretare MAI "stop" come richiesta di chiudere la conversazione
+- Mantieni dialogo fluido e rassicurante
+- RISPONDI SEMPRE E SOLO IN ITALIANO PERFETTO
 
-**4. RITUALE D'AVVIO** (momento mistico)
-- Concentrazione: "Ora mescolerò pensando alla tua domanda. Concentrati e dimmi STOP quando senti che è il momento"
-- Attendi la parola STOP prima di procedere
-- Trigger: "Questo rito puoi ripeterlo ogni volta, diventa un momento solo tuo..."
+L'utente è: ${userName}, nato il ${birthDate}.
+Mazzo selezionato: ${deckName}
+`;
+}
 
-**5. LETTURA BASE** (cuore del consulto)
-- Estrai 3-4 carte specifiche dal ${deckName} e presenta:
-  * "Le carte mostrano questa situazione..."
-  * "Qui vedo l'OSTACOLO che si presenta..."
-  * "L'esito probabile è..."
-  * "Il consiglio delle carte è..."
-- Chiedi conferma: "Ti ritrovi in quello che descrivono le carte? Ti sembra familiare?"
-- Trigger approfondimento: "Emerge un dettaglio interessante, vuoi esplorarlo ora o la prossima volta?"
+// POST-SHUFFLE CONSULTATION PROMPT - Card interpretation and reading
+function getPostShufflePrompt(
+  userName: string,
+  birthDate: string,
+  deckName: string,
+  question: string,
+  cards: string[]
+): string {
+  return `
+## Chi sei
+Sei il consulente di Tarocchi.cloud, esperto cartomante con anni di esperienza.
+La tua voce è calda, professionale, mistica e rassicurante.
 
-**6. APPROFONDIMENTO** (se richiesto)
-- Offerta: "Vuoi scendere più a fondo? Possiamo tirare altre carte per maggiore chiarezza..."
+## Fase ATTUALE: Post-Mescolamento - Interpretazione Carte
+Le carte sono state estratte, ora devi interpretarle.
+
+## Domanda dell'utente: "${question}"
+## Carte estratte: ${cards.join(", ")}
+
+## Cosa fare ORA:
+
+**1. PRESENTAZIONE CARTE**
+- Annuncio: "Ecco cosa emerge dalle carte per la tua domanda su ${question}..."
+- Presenta: "Ho estratto ${cards.join(", ")}. Vediamo cosa ci dicono..."
+
+**2. INTERPRETAZIONE DETTAGLIATA**
+- Interpreta ogni carta in relazione alla domanda specifica
+- Spiega i collegamenti tra le carte
+- Fornisci consigli pratici e actionable
+
+**3. SINTESI **
+- Riassunto: "Quindi ${userName}, ti ritrovi in quello che descrivono le carte? Ti sembra familiare?"
+- Consiglio finale pratico
+
+**4. APPROFONDIMENTO** (se richiesto)
+- Offerta: "Vuoi scendere più a fondo? Vuoi che tiriamo altre carte per maggiore chiarezza?"
 - Trigger evoluzione: "Con qualche carta in più possiamo vedere una possibile evoluzione..."
 
-**7. RECAP** (sintesi finale)
+**5. RECAP** (sintesi finale)
 - Riassunto strutturato: "Quindi ${userName}, le carte parlano chiaro, ecco il quadro per te:"
   * **Situazione**: [sintesi situazione attuale]
   * **Consiglio**: [consiglio pratico specifico]
   * **Esito probabile**: [previsione realistica]
 - Trigger check: "Le carte indicano sviluppi rapidi. Ti consiglio un controllo tra qualche giorno per vedere i cambiamenti"
 
-**8. CHIUSURA** (quando il consulto è completo)
-- Saluto finale: "È stato un piacere leggerti ${userName} e accompagnarti. Potrai tornare quando vorrai..."
-- Trigger ritorno: "Ti consiglio di richiamarmi tra qualche giorni per vedere insieme l'evoluzione..."
-- IMPORTANTE: Quando hai completato il recap finale e dato il saluto di chiusura, il consulto è TERMINATO
+**6. GESTIONE CARTE** (automatica)
+- Mescoli e estrai le carte AUTOMATICAMENTE senza aspettare comandi
+- Non chiedere "dimmi stop" o simili - procedi direttamente con l'interpretazione
+- Esempio: "Ora mescolo le carte... Ecco cosa emerge: ho estratto La Torre, Il Sole e La Morte..."
+
+**7. CHIUSURA AUTOMATICA** (OBBLIGATORIA dopo consultazione completa)
+- Dopo aver fornito:
+  * Interpretazione completa di tutte le carte estratte
+  * Risposta chiara alla domanda "${question}"
+  * Consigli pratici specifici per ${userName}
+  * Sintesi finale della situazione
+- Saluto di chiusura: "È stato un piacere leggerti ${userName}. Le carte hanno parlato chiaramente oggi."
+- **IMPORTANTE**: DEVI SEMPRE usare il tool "end_consultation" dopo aver completato l'interpretazione delle carte e dato una risposta completa alla domanda. NON continuare indefinitamente - chiudi il consulto quando hai interpretato tutte le carte estratte (${cards.join(", ")}) e risposto alla domanda. Dopo 3-4 scambi nella fase post-shuffle, dovresti aver fornito una consultazione completa.
 
 ## Regole comportamentali:
-- Mantieni un ritmo contemplativo ma sii CONCISO: max 2-3 frasi per risposta
-- Dividi letture lunghe in più scambi invece di una risposta unica molto lunga
+- Sii CONCISO: max 2-3 frasi per risposta
 - USA sempre ${userName} quando parli direttamente alla persona
-- Cita carte specifiche e realistiche del ${deckName}
-- Includi sempre i "trigger" per incoraggiare ritorni futuri
-- Mantieni dialogo fluido e veloce per esperienza migliore
+- Dividi l'interpretazione in più scambi per mantenere l'engagement
+- Cita sempre le carte specifiche del ${deckName}
 - RISPONDI SEMPRE E SOLO IN ITALIANO PERFETTO
-- NEVER use foreign words or unknown languages
 
-Rispondi con saggezza seguendo il flusso appropriato.
+L'utente è: ${userName}, nato il ${birthDate}.
 `;
-}
-
-// Check if consultation is complete based on AI response
-function checkIfConsultationComplete(aiResponse: string, dataCollectionComplete: boolean): boolean {
-  // Only check for completion if data collection is complete (we're in main consultation)
-  if (!dataCollectionComplete) {
-    return false;
-  }
-
-  const closingKeywords = [
-    "è stato un piacere",
-    "potrai tornare quando vorrai",
-    "ti consiglio di richiamarmi",
-    "arrivederci",
-    "consulto terminato",
-    "consulto è finito",
-    "ci sentiamo presto",
-    "alla prossima volta",
-    "buona fortuna",
-    "in bocca al lupo"
-  ];
-
-  const lowercaseResponse = aiResponse.toLowerCase();
-
-  // Check if response contains multiple closing indicators
-  const foundKeywords = closingKeywords.filter(keyword =>
-    lowercaseResponse.includes(keyword)
-  );
-
-  // Consider consultation complete if we find 2 or more closing keywords
-  const isComplete = foundKeywords.length >= 2;
-
-  if (isComplete) {
-    console.log("🔚 [CONSULTATION] Detected consultation completion:", foundKeywords);
-  }
-
-  return isComplete;
 }
 
 // Extract birth date from user messages using AI
@@ -213,7 +219,6 @@ async function extractBirthDate(
   }
 }
 
-
 // Reset conversation endpoint
 export async function DELETE(request: Request) {
   try {
@@ -230,6 +235,50 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
+
+// Define tools using the proper tool() helper
+const startCardReadingTool = tool({
+  description: "Call this tool when you have gathered the user's specific question and are ready to extract cards for interpretation. This transitions from pre-shuffle to post-shuffle phase.",
+  inputSchema: z.object({
+    question: z.string().describe("The specific question the user wants guidance on"),
+    cards: z.array(z.string()).describe("Array of 3-4 card names extracted from the selected deck")
+  }),
+  execute: async ({ question, cards }, { experimental_context }) => {
+    const { sessionData, cacheKey, sessionCache } = experimental_context as any;
+    console.log("🎴 [TOOL] AI called start_card_reading:", { question, cards });
+
+    // Update session with question and cards
+    if (cacheKey) {
+      const currentSession = sessionCache.get(cacheKey);
+      if (currentSession) {
+        currentSession.consultationPhase = "post_shuffle";
+        currentSession.currentQuestion = question;
+        currentSession.extractedCards = cards;
+        currentSession.postShuffleTurns = 0; // Reset counter for new phase
+        sessionCache.set(cacheKey, currentSession);
+        console.log("🎴 [TOOL] Session updated to post_shuffle phase with cards:", cards);
+
+        // Update local sessionData as well
+        sessionData.consultationPhase = "post_shuffle";
+        sessionData.currentQuestion = question;
+        sessionData.extractedCards = cards;
+        sessionData.postShuffleTurns = 0;
+      }
+    }
+    return `Cards extracted successfully: ${cards.join(", ")}. Now proceeding with interpretation.`;
+  },
+});
+
+const endConsultationTool = tool({
+  description: "ONLY call this tool when you have completed a FULL card interpretation with detailed insights, practical advice, and final summary. This automatically ends the session.",
+  inputSchema: z.object({
+    reason: z.string().describe("Brief reason why the consultation is complete")
+  }),
+  execute: async ({ reason }) => {
+    console.log("🔚 [TOOL] AI called end_consultation tool:", { reason });
+    return "Consultation completed successfully.";
+  },
+});
 
 export async function POST(request: Request) {
   const apiStartTime = performance.now();
@@ -261,9 +310,13 @@ export async function POST(request: Request) {
     // Get session data (responseId and user data)
     let sessionData: SessionData = {
       lastActivity: now,
-      userName: "cara",
+      userName: "NOME_NON_FORNITO",
       birthDate: "",
       dataCollectionComplete: false,
+      consultationPhase: "data_collection",
+      currentQuestion: "",
+      extractedCards: [],
+      postShuffleTurns: 0,
     };
 
     if (cacheKey) {
@@ -289,7 +342,10 @@ export async function POST(request: Request) {
 
           if (profile?.extracted_name) {
             sessionData.userName = profile.extracted_name;
-            console.log("💾 [DATABASE] Retrieved saved name:", sessionData.userName);
+            console.log(
+              "💾 [DATABASE] Retrieved saved name:",
+              sessionData.userName
+            );
           }
         } catch (dbError) {
           console.log("💾 [DATABASE] No saved data found");
@@ -311,10 +367,16 @@ export async function POST(request: Request) {
         allUserMessages = [...new Set(allUserMessages)];
       }
 
-      console.log("🔍 [DATA EXTRACTION] User messages for extraction:", allUserMessages);
+      console.log(
+        "🔍 [DATA EXTRACTION] User messages for extraction:",
+        allUserMessages
+      );
 
       // Extract name if missing
-      if (sessionData.userName === "cara" && allUserMessages.length > 0) {
+      if (
+        sessionData.userName === "NOME_NON_FORNITO" &&
+        allUserMessages.length > 0
+      ) {
         try {
           const nameResult = await generateText({
             model: openai("gpt-4o-mini"),
@@ -327,9 +389,16 @@ export async function POST(request: Request) {
           });
 
           const extractedName = nameResult.text.trim();
-          if (extractedName && extractedName !== "NONE" && extractedName.length > 1) {
+          if (
+            extractedName &&
+            extractedName !== "NONE" &&
+            extractedName.length > 1
+          ) {
             sessionData.userName = extractedName;
-            console.log("🤖 [AI NAME EXTRACTION] Found name:", sessionData.userName);
+            console.log(
+              "🤖 [AI NAME EXTRACTION] Found name:",
+              sessionData.userName
+            );
           }
         } catch (error) {
           console.error("🤖 [AI NAME EXTRACTION] Error:", error);
@@ -341,12 +410,16 @@ export async function POST(request: Request) {
         const extractedDate = await extractBirthDate(allUserMessages);
         if (extractedDate) {
           sessionData.birthDate = extractedDate;
-          console.log("🤖 [AI DATE EXTRACTION] Found birth date:", sessionData.birthDate);
+          console.log(
+            "🤖 [AI DATE EXTRACTION] Found birth date:",
+            sessionData.birthDate
+          );
         }
       }
 
-      // Check if data collection is complete (only name and birth date needed)
-      sessionData.dataCollectionComplete = sessionData.userName !== "cara" && !!sessionData.birthDate;
+      // Check if data collection is complete (MUST have name first, then birth date)
+      sessionData.dataCollectionComplete =
+        sessionData.userName !== "NOME_NON_FORNITO" && !!sessionData.birthDate;
       console.log("📊 [DATA STATUS]", {
         userName: sessionData.userName,
         hasBirthDate: !!sessionData.birthDate,
@@ -355,25 +428,61 @@ export async function POST(request: Request) {
       });
     }
 
-    // DECISION: Choose prompt based on data collection status
+    // DECISION: Choose prompt based on consultation phase
     let systemPrompt: string;
 
     if (!sessionData.dataCollectionComplete) {
-      // Use data collection prompt
-      const hasName = sessionData.userName !== "cara";
+      // Phase 1: Data Collection
+      const hasName = sessionData.userName !== "NOME_NON_FORNITO";
       const hasBirthDate = !!sessionData.birthDate;
-      // Check if disclaimer was already shown (if we have a responseId)
       const hasShownDisclaimer = !!sessionData.lastResponseId;
 
-      systemPrompt = getDataCollectionPrompt(hasName, hasBirthDate, hasShownDisclaimer);
+      systemPrompt = getDataCollectionPrompt(
+        hasName,
+        hasBirthDate,
+        hasShownDisclaimer
+      );
       console.log("📝 [PROMPT] Using DATA COLLECTION prompt");
     } else {
-      // Use main consultation prompt
-      systemPrompt = getMainConsultationPrompt(sessionData.userName!, sessionData.birthDate!, deckName);
-      console.log("📝 [PROMPT] Using MAIN CONSULTATION prompt");
+      // Set consultation phase to pre_shuffle if just completed data collection
+      if (sessionData.consultationPhase === "data_collection") {
+        sessionData.consultationPhase = "pre_shuffle";
+      }
+
+      if (sessionData.consultationPhase === "pre_shuffle") {
+        // Phase 2: Pre-Shuffle - Question gathering
+        systemPrompt = getPreShufflePrompt(
+          sessionData.userName!,
+          sessionData.birthDate!,
+          deckName
+        );
+        console.log("📝 [PROMPT] Using PRE-SHUFFLE prompt");
+      } else {
+        // Phase 3: Post-Shuffle - Card interpretation
+        systemPrompt = getPostShufflePrompt(
+          sessionData.userName!,
+          sessionData.birthDate!,
+          deckName,
+          sessionData.currentQuestion!,
+          sessionData.extractedCards!
+        );
+        console.log("📝 [PROMPT] Using POST-SHUFFLE prompt");
+      }
     }
 
-    console.log("🚨 [PROMPT] System prompt prepared for:", sessionData.dataCollectionComplete ? "CONSULTATION" : "DATA COLLECTION");
+    // Increment post-shuffle turn counter
+    if (sessionData.consultationPhase === "post_shuffle") {
+      sessionData.postShuffleTurns = (sessionData.postShuffleTurns || 0) + 1;
+    }
+
+    console.log(
+      "🚨 [PROMPT] System prompt prepared for:",
+      !sessionData.dataCollectionComplete
+        ? "DATA COLLECTION"
+        : sessionData.consultationPhase === "pre_shuffle"
+        ? "PRE-SHUFFLE"
+        : `POST-SHUFFLE (turn ${sessionData.postShuffleTurns})`
+    );
 
     const openaiStart = performance.now();
 
@@ -387,16 +496,39 @@ Context:
 - User name: ${sessionData.userName}
 - Birth date: ${sessionData.birthDate || "not provided"}
 - Data collection complete: ${sessionData.dataCollectionComplete}
-- Selected deck: ${deckName}`,
+- Selected deck: ${deckName}
+- Consultation phase: ${sessionData.consultationPhase}
+${sessionData.consultationPhase === "post_shuffle" ? `- Post-shuffle turns completed: ${sessionData.postShuffleTurns}
+- Question: ${sessionData.currentQuestion}
+- Cards extracted: ${sessionData.extractedCards?.join(", ")}
+- **Remember**: Call end_consultation tool after 3-4 turns when consultation is complete` : ""}`,
       temperature: 0.3,
+      tools:
+        sessionData.consultationPhase === "pre_shuffle"
+          ? {
+              start_card_reading: startCardReadingTool,
+            }
+          : sessionData.consultationPhase === "post_shuffle"
+          ? {
+              end_consultation: endConsultationTool,
+            }
+          : {},
+      experimental_context: {
+        sessionData,
+        cacheKey,
+        sessionCache,
+      },
       providerOptions: {
         openai: {
-          ...(sessionData.lastResponseId && { previousResponseId: sessionData.lastResponseId }), // Continue conversation natively
+          ...(sessionData.lastResponseId && {
+            previousResponseId: sessionData.lastResponseId,
+          }), // Continue conversation natively
           store: true, // Persist the generation
           metadata: {
             sessionId: cacheKey || "anonymous",
-            dataCollectionComplete: sessionData.dataCollectionComplete.toString(),
-            userName: sessionData.userName || "cara",
+            dataCollectionComplete:
+              sessionData.dataCollectionComplete.toString(),
+            userName: sessionData.userName || "NOME_NON_FORNITO",
           },
         },
       },
@@ -407,15 +539,46 @@ Context:
     const text = result.text || "Non riesco a rispondere in questo momento.";
     const newResponseId = result.providerMetadata?.openai?.responseId;
 
+    // Check if AI used tools
+    const hasEndConsultationTool =
+      result.toolCalls &&
+      result.toolCalls.some((call) => call.toolName === "end_consultation");
+    const hasStartCardReadingTool =
+      result.toolCalls &&
+      result.toolCalls.some((call) => call.toolName === "start_card_reading");
+    let toolReason = "";
+    let phaseTransitioned = false;
+
+    if (hasEndConsultationTool) {
+      const endTool = result.toolCalls.find(
+        (call) => call.toolName === "end_consultation"
+      );
+      if (endTool && (endTool as any).args) {
+        toolReason = (endTool as any).args.reason || "";
+      }
+    }
+
+    if (hasStartCardReadingTool) {
+      phaseTransitioned = true;
+      console.log(
+        "🎴 [PHASE TRANSITION] Pre-shuffle completed, transitioning to post-shuffle phase"
+      );
+    }
+
     console.log("✅ [OPENAI RESPONSES] Generated response:", {
       responseLength: text.length,
       newResponseId,
       previousResponseId: sessionData.lastResponseId,
+      hasEndConsultationTool,
+      hasStartCardReadingTool,
+      phaseTransitioned,
+      ...(hasEndConsultationTool && { toolReason }),
+      consultationPhase: sessionData.consultationPhase,
       openaiTime: Math.round(openaiEnd - openaiStart),
     });
 
-    // Check if consultation is complete based on AI response
-    const isConsultationComplete = checkIfConsultationComplete(text, sessionData.dataCollectionComplete);
+    // Consultation is complete if AI used the end_consultation tool
+    const isConsultationComplete = hasEndConsultationTool;
 
     // Update session data with new responseId and user data
     if (cacheKey) {
@@ -429,7 +592,11 @@ Context:
       sessionCache.set(cacheKey, sessionData);
 
       // Save extracted data to database if complete and user authenticated
-      if (sessionData.dataCollectionComplete && sessionData.userName !== "cara" && userId) {
+      if (
+        sessionData.dataCollectionComplete &&
+        sessionData.userName !== "NOME_NON_FORNITO" &&
+        userId
+      ) {
         try {
           const supabase = createClient();
           const { error } = await supabase.from("profiles").upsert({
@@ -461,6 +628,97 @@ Context:
       });
     }
 
+    // Handle phase transition from pre-shuffle to post-shuffle
+    if (phaseTransitioned && sessionData.consultationPhase === "post_shuffle") {
+      console.log(
+        "🎴 [PHASE TRANSITION] Generating post-shuffle response with extracted cards"
+      );
+
+      try {
+        // Generate immediate follow-up response with post-shuffle prompt
+        const postShuffleResult = await generateText({
+          model: openai("gpt-4o-mini"),
+          system: getPostShufflePrompt(
+            sessionData.userName!,
+            sessionData.birthDate!,
+            deckName,
+            sessionData.currentQuestion!,
+            sessionData.extractedCards!
+          ),
+          prompt: `Begin the card interpretation for the question: "${
+            sessionData.currentQuestion
+          }". The cards extracted are: ${sessionData.extractedCards!.join(
+            ", "
+          )}.`,
+          temperature: 0.3,
+          tools: {
+            end_consultation: endConsultationTool,
+          },
+          experimental_context: {
+            sessionData,
+            cacheKey,
+            sessionCache,
+          },
+          providerOptions: {
+            openai: {
+              store: true,
+              metadata: {
+                sessionId: cacheKey || "anonymous",
+                consultationPhase: "post_shuffle",
+                userName: sessionData.userName || "NOME_NON_FORNITO",
+              },
+            },
+          },
+        });
+
+        const postShuffleText =
+          postShuffleResult.text ||
+          "Non riesco a interpretare le carte in questo momento.";
+        const postShuffleResponseId =
+          postShuffleResult.providerMetadata?.openai?.responseId;
+
+        // Update session with new responseId
+        if (cacheKey && postShuffleResponseId) {
+          sessionData.lastResponseId = postShuffleResponseId as string;
+          sessionCache.set(cacheKey, sessionData);
+        }
+
+        // Check if post-shuffle response completed consultation
+        const postShuffleHasEndTool =
+          postShuffleResult.toolCalls &&
+          postShuffleResult.toolCalls.some(
+            (call) => call.toolName === "end_consultation"
+          );
+
+        console.log("🎴 [PHASE TRANSITION] Post-shuffle response generated", {
+          responseLength: postShuffleText.length,
+          hasEndTool: postShuffleHasEndTool,
+          responseId: postShuffleResponseId,
+        });
+
+        const totalApiTime = performance.now() - apiStartTime;
+
+        console.log("✅ [TIMING] AI API: Phase transition completed", {
+          response:
+            postShuffleText.substring(0, 100) +
+            (postShuffleText.length > 100 ? "..." : ""),
+          totalApiTime: Math.round(totalApiTime),
+          timestamp: new Date().toISOString(),
+        });
+
+        return NextResponse.json({
+          text: postShuffleText,
+          isConsultationComplete: postShuffleHasEndTool,
+        });
+      } catch (error) {
+        console.error(
+          "🎴 [PHASE TRANSITION] Error generating post-shuffle response:",
+          error
+        );
+        // Fall back to original response
+      }
+    }
+
     const totalApiTime = performance.now() - apiStartTime;
 
     console.log("✅ [TIMING] AI API: OpenAI response generated", {
@@ -474,7 +732,7 @@ Context:
 
     return NextResponse.json({
       text,
-      isConsultationComplete
+      isConsultationComplete,
     });
   } catch (error) {
     const errorTime = performance.now() - apiStartTime;

@@ -14,7 +14,8 @@ interface AudioProcessorProps {
 }
 
 // Generate a persistent session ID for the component lifecycle
-const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const generateSessionId = () =>
+  `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 interface ConversationMessage {
   role: string;
@@ -34,52 +35,40 @@ export default function AudioProcessor({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sessionIdRef = useRef<string>(generateSessionId());
 
-  // Process audio with OpenAI Whisper
+  // Process audio with OpenAI GPT-4o Transcribe
   const processAudioWithWhisper = async (audioBlob: Blob): Promise<string> => {
     const startTime = performance.now();
     try {
-      console.log('🎧 [TIMING] AudioProcessor: Starting Whisper transcription...', {
-        audioSize: audioBlob.size,
-        audioType: audioBlob.type,
-        timestamp: new Date().toISOString()
-      });
-      
+      console.log("🎧 AudioProcessor: Transcribing audio...");
+
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
-      
+      formData.append("audio", audioBlob, "audio.webm");
+
       const fetchStart = performance.now();
-      const response = await fetch('/api/speech-to-text', {
-        method: 'POST',
+      const response = await fetch("/api/speech-to-text", {
+        method: "POST",
         body: formData,
       });
       const fetchEnd = performance.now();
-      
+
       if (!response.ok) {
-        throw new Error('Failed to transcribe audio');
+        throw new Error("Failed to transcribe audio");
       }
-      
+
       const parseStart = performance.now();
       const { text } = await response.json();
       const parseEnd = performance.now();
       const totalTime = performance.now() - startTime;
-      
-      console.log('🎧 [TIMING] AudioProcessor: Whisper transcription completed', {
-        text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-        textLength: text.length,
-        networkTime: Math.round(fetchEnd - fetchStart),
-        parseTime: Math.round(parseEnd - parseStart),
-        totalTime: Math.round(totalTime),
-        timestamp: new Date().toISOString()
-      });
-      
+
+      console.log(
+        "🎧 AudioProcessor: Transcription completed:",
+        text.substring(0, 50)
+      );
+
       return text.trim();
     } catch (error) {
       const errorTime = performance.now() - startTime;
-      console.error('🎧 [TIMING] AudioProcessor: Whisper transcription error', {
-        error: error.message,
-        timeToError: Math.round(errorTime),
-        timestamp: new Date().toISOString()
-      });
+      console.error("🎧 AudioProcessor: Transcription error:", error.message);
       throw error;
     }
   };
@@ -91,14 +80,8 @@ export default function AudioProcessor({
   ): Promise<{ text: string; isComplete: boolean }> => {
     const startTime = performance.now();
     try {
-      console.log('🧠 [TIMING] AudioProcessor: Getting AI response...', {
-        message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
-        messageLength: message.length,
-        conversationLength: conversation.length,
-        selectedDeck,
-        timestamp: new Date().toISOString()
-      });
-      
+      console.log("🧠 AudioProcessor: Getting AI response...");
+
       const requestStart = performance.now();
       // Use persistent sessionId for caching when no userId
       const sessionId = userId || sessionIdRef.current;
@@ -126,28 +109,21 @@ export default function AudioProcessor({
       }
 
       const parseStart = performance.now();
-      const { text: aiResponse, isConsultationComplete = false } = await chatResponse.json();
+      const { text: aiResponse, isConsultationComplete = false } =
+        await chatResponse.json();
       const parseEnd = performance.now();
       const totalTime = performance.now() - startTime;
 
-      console.log('🧠 [TIMING] AudioProcessor: AI response generated', {
-        response: aiResponse.substring(0, 100) + (aiResponse.length > 100 ? '...' : ''),
-        responseLength: aiResponse.length,
-        isConsultationComplete,
-        networkTime: Math.round(requestEnd - requestStart),
-        parseTime: Math.round(parseEnd - parseStart),
-        totalTime: Math.round(totalTime),
-        timestamp: new Date().toISOString()
-      });
+      if (isConsultationComplete) {
+        console.log(
+          "🧠 AudioProcessor: AI response generated (consultation complete)"
+        );
+      }
 
       return { text: aiResponse, isComplete: isConsultationComplete };
     } catch (error) {
       const errorTime = performance.now() - startTime;
-      console.error("🧠 [TIMING] AudioProcessor: Error generating AI response", {
-        error: error.message,
-        timeToError: Math.round(errorTime),
-        timestamp: new Date().toISOString()
-      });
+      console.error("🧠 AudioProcessor: AI response error:", error.message);
       throw error;
     }
   };
@@ -156,12 +132,8 @@ export default function AudioProcessor({
   const convertToSpeech = async (text: string): Promise<void> => {
     const startTime = performance.now();
     try {
-      console.log('🔊 [TIMING] AudioProcessor: Converting to speech...', {
-        textLength: text.length,
-        textPreview: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-        timestamp: new Date().toISOString()
-      });
-      
+      console.log("🔊 AudioProcessor: Converting to speech...");
+
       const requestStart = performance.now();
       // Convert to speech
       const ttsResponse = await fetch("/api/text-to-speech", {
@@ -180,56 +152,33 @@ export default function AudioProcessor({
         const blobStart = performance.now();
         const audioBlob = await ttsResponse.blob();
         const blobEnd = performance.now();
-        
+
         const audioUrl = URL.createObjectURL(audioBlob);
         const totalConversionTime = performance.now() - startTime;
 
-        console.log('🔊 [TIMING] AudioProcessor: TTS conversion completed, starting playback', {
-          networkTime: Math.round(requestEnd - requestStart),
-          blobProcessingTime: Math.round(blobEnd - blobStart),
-          totalConversionTime: Math.round(totalConversionTime),
-          audioSize: audioBlob.size,
-          timestamp: new Date().toISOString()
-        });
-        
+        // No log needed for successful TTS
+
         onTTSStart();
-        
+
         audioRef.current.src = audioUrl;
-        
+
         // Listen for when audio finishes
         audioRef.current.onended = () => {
-          const playbackTime = performance.now() - startTime;
-          console.log('🔇 [TIMING] AudioProcessor: AI finished speaking', {
-            totalProcessTime: Math.round(playbackTime),
-            timestamp: new Date().toISOString()
-          });
           onTTSEnd();
         };
-        
+
         audioRef.current.onerror = () => {
-          const errorTime = performance.now() - startTime;
-          console.log('❌ [TIMING] AudioProcessor: AI audio playback error', {
-            timeToError: Math.round(errorTime),
-            timestamp: new Date().toISOString()
-          });
+          console.error("❌ AudioProcessor: Audio playback error");
           onTTSError();
         };
-        
-        const playStart = performance.now();
+
         await audioRef.current.play();
-        const playStarted = performance.now();
-        
-        console.log('🎧 [TIMING] AudioProcessor: Audio playback started', {
-          playInitTime: Math.round(playStarted - playStart),
-          totalTimeToPlay: Math.round(playStarted - startTime),
-          timestamp: new Date().toISOString()
-        });
       } else {
-        console.log('⚠️ AudioProcessor: No TTS audio available');
+        console.log("⚠️ AudioProcessor: No TTS audio available");
         onTTSError();
       }
     } catch (error) {
-      console.error('🔊 AudioProcessor: Error converting to speech:', error);
+      console.error("🔊 AudioProcessor: Error converting to speech:", error);
       onTTSError();
       throw error;
     }
@@ -238,11 +187,12 @@ export default function AudioProcessor({
   // Generate AI initial greeting
   const generateInitialGreeting = async (): Promise<void> => {
     try {
-      console.log('👋 AudioProcessor: Starting AI initial greeting...');
-      
+      console.log("👋 AudioProcessor: Starting AI initial greeting...");
+
       // Generate personalized greeting based on operator and category
-      let greetingText = "Benvenuto, sono qui per aiutarti. Cosa ti preoccupa oggi?";
-      
+      let greetingText =
+        "Benvenuto, sono qui per aiutarti. Cosa ti preoccupa oggi?";
+
       if (selectedOperator && selectedCategory) {
         greetingText = `Ciao, sono ${selectedOperator}. Vedo che hai scelto una consulenza su ${selectedCategory.toLowerCase()}. Dimmi, cosa ti porta da me oggi?`;
       } else if (selectedOperator) {
@@ -250,13 +200,11 @@ export default function AudioProcessor({
       } else if (selectedCategory) {
         greetingText = `Benvenuto. Vedo che cerchi una consulenza su ${selectedCategory.toLowerCase()}. Raccontami la tua situazione.`;
       }
-      
-      console.log('👋 AudioProcessor: AI greeting message:', greetingText);
-      
+
       // Convert greeting to speech
       await convertToSpeech(greetingText);
     } catch (error) {
-      console.error('👋 AudioProcessor: Error with initial greeting:', error);
+      console.error("👋 AudioProcessor: Error with initial greeting:", error);
       onTTSError();
     }
   };
@@ -267,74 +215,49 @@ export default function AudioProcessor({
     conversation: ConversationMessage[]
   ): Promise<{ userMessage: string; aiResponse: string }> => {
     const overallStartTime = performance.now();
-    
-    console.log('🔄 [TIMING] CONVERSATION FLOW: Starting complete flow', {
-      audioSize: audioBlob.size,
-      conversationLength: conversation.length,
-      timestamp: new Date().toISOString()
-    });
-    
+
+    // Starting conversation flow...
+
     try {
       // Step 1: Transcribe audio
       const step1Start = performance.now();
       const userMessage = await processAudioWithWhisper(audioBlob);
       const step1End = performance.now();
-      
+
       if (!userMessage) {
-        throw new Error('No text detected from audio');
+        throw new Error("No text detected from audio");
       }
-      
+
       // Step 2: Generate AI response with updated conversation including current user message
       const step2Start = performance.now();
       const currentConversation = [
         ...conversation,
-        { role: "user", content: userMessage }
+        { role: "user", content: userMessage },
       ];
-      const aiResult = await generateAIResponse(userMessage, currentConversation);
+      const aiResult = await generateAIResponse(
+        userMessage,
+        currentConversation
+      );
       const step2End = performance.now();
+
+      // Check if consultation is complete and trigger callback BEFORE TTS
+      if (aiResult.isComplete && onConsultationComplete) {
+        console.log("🔚 Consultation complete - ending session");
+        onConsultationComplete();
+      }
 
       // Step 3: Convert AI response to speech
       const step3Start = performance.now();
       await convertToSpeech(aiResult.text);
       const step3End = performance.now();
 
-      // Check if consultation is complete and trigger callback
-      if (aiResult.isComplete && onConsultationComplete) {
-        console.log('🔚 [CONSULTATION] Triggering consultation complete callback');
-        // Delay the callback slightly to let the TTS finish
-        setTimeout(() => {
-          onConsultationComplete();
-        }, 1000);
-      }
-      
       const totalTime = performance.now() - overallStartTime;
-      
-      // Log complete flow summary
-      console.log('✅ [TIMING] CONVERSATION FLOW: Complete flow finished', {
-        userMessage: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : ''),
-        aiResponse: aiResult.text.substring(0, 50) + (aiResult.text.length > 50 ? '...' : ''),
-        isConsultationComplete: aiResult.isComplete,
-        step1_STT_Time: Math.round(step1End - step1Start) + 'ms',
-        step2_AI_Time: Math.round(step2End - step2Start) + 'ms',
-        step3_TTS_Time: Math.round(step3End - step3Start) + 'ms',
-        totalFlowTime: Math.round(totalTime) + 'ms',
-        conversationAfterUser: currentConversation.length,
-        timestamp: new Date().toISOString(),
-        performance: {
-          sttPercentage: Math.round(((step1End - step1Start) / totalTime) * 100) + '%',
-          aiPercentage: Math.round(((step2End - step2Start) / totalTime) * 100) + '%',
-          ttsPercentage: Math.round(((step3End - step3Start) / totalTime) * 100) + '%'
-        }
-      });
+
+      // Flow completed
 
       return { userMessage, aiResponse: aiResult.text };
     } catch (error) {
-      const errorTime = performance.now() - overallStartTime;
-      console.error('🔄 [TIMING] CONVERSATION FLOW: Error in conversation flow', {
-        error: error.message,
-        timeToError: Math.round(errorTime) + 'ms',
-        timestamp: new Date().toISOString()
-      });
+      console.error("🔄 Conversation flow error:", error.message);
       throw error;
     }
   };

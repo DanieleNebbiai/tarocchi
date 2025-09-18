@@ -29,20 +29,21 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString()
     });
 
-    const whisperStart = performance.now();
+    const transcriptionStart = performance.now();
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
-      model: 'whisper-1',
-      language: 'it',
+      model: 'gpt-4o-transcribe', // Using newer GPT-4o transcription model
       response_format: 'text',
+      // Note: gpt-4o-transcribe doesn't support language parameter
     });
-    const whisperEnd = performance.now();
+    const transcriptionEnd = performance.now();
     const totalApiTime = performance.now() - apiStartTime;
 
     console.log('✅ [TIMING] STT API: Transcription completed', {
       transcription: transcription.substring(0, 100) + (transcription.length > 100 ? '...' : ''),
       textLength: transcription.length,
-      whisperTime: Math.round(whisperEnd - whisperStart),
+      modelUsed: 'gpt-4o-transcribe',
+      transcriptionTime: Math.round(transcriptionEnd - transcriptionStart),
       totalApiTime: Math.round(totalApiTime),
       timestamp: new Date().toISOString()
     });

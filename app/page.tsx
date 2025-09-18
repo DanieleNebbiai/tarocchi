@@ -28,12 +28,14 @@ export default function HomePage() {
           </div>
 
           <h1 className="font-playfair text-5xl md:text-7xl font-bold text-earth-900 mb-6 animate-fade-in tracking-tight">
-            Tarocchi.cloud
+            Scegli il tuo Mazzo, <br /> Trasforma il tuo Destino
           </h1>
 
           <p className="text-xl md:text-2xl text-earth-700 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Il primo sistema di cartomanzia intelligente. Risposte vere, sempre
-            disponibili, accessibili ovunque.
+            Con la nostra piattaforma 24/7, hai accesso a consulti di tarocchi
+            personalizzati in qualsiasi momento. Ogni mazzo ha un carattere
+            unico: scegli quello che risuona con te e lasciati guidare dalle
+            carte.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">

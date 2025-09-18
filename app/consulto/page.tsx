@@ -27,18 +27,78 @@ function ConsultoPageContent() {
   const [consultationStarted, setConsultationStarted] = useState(false);
 
   const tarotDecks = [
-    "Sibille",
-    "Motherpeace",
-    "Sola Busca",
-    "Petit Eitteilla",
-    "Le Grand Eitteilla",
-    "Tarocco Arlecchino",
-    "The Book of Thoth",
-    "Carte da gioco tradizionali",
-    "Lenormand Game of Hope",
-    "Golden Dawn",
-    "Tarocchi di Marsiglia",
-    "Rider-Waite-Smith",
+    {
+      name: "Rider-Waite-Smith",
+      icon: "🎯",
+      description: "Il mazzo più diffuso al mondo. Svela cause, ostacoli e potenziali sviluppi con chiarezza.",
+      forWho: "Per chi vuole una lettura razionale e completa: ideale quando cerchi risposte logiche e una visione d'insieme."
+    },
+    {
+      name: "Tarocchi di Marsiglia",
+      icon: "🎨",
+      description: "Simboli antichi e tradizione esoterica. Parla per archetipi e invita alla riflessione.",
+      forWho: "Per l'anima filosofica e tradizionalista: ami i simboli, la storia e la profondità."
+    },
+    {
+      name: "Golden Dawn",
+      icon: "🌟",
+      description: "Metodo strutturato con riferimenti astrologici ed elementali. Ottimo per confrontare opzioni.",
+      forWho: "Per chi ragiona in modo analitico: perfetto per scelte importanti e decisioni chiare."
+    },
+    {
+      name: "Lenormand Game of Hope",
+      icon: "🎪",
+      description: "Focalizzato su eventi concreti, persone e tempistiche brevi. Linguaggio diretto e immediato.",
+      forWho: "Per chi cerca risposte pratiche e veloci: ottimo per questioni quotidiane e tempistiche ravvicinate."
+    },
+    {
+      name: "Carte da gioco tradizionali",
+      icon: "♠️",
+      description: "Mazzo classico da poker adattato alla divinazione. Risposte secche e rapide, sì/no.",
+      forWho: "Per chi ha bisogno di decisioni immediate: adatto quando vuoi un responso semplice e diretto."
+    },
+    {
+      name: "The Book of Thoth",
+      icon: "📜",
+      description: "Simbolismo complesso di Crowley. Combina cabala, astrologia e alchimia per introspezioni profonde.",
+      forWho: "Per chi è in ricerca spirituale: ideale se vuoi esplorare livelli esoterici avanzati."
+    },
+    {
+      name: "Tarocco Arlecchino",
+      icon: "🎭",
+      description: "Lettura sintetica e ironica. Unisce chiarezza a un tono leggero per risultati immediati.",
+      forWho: "Per chi ama la semplicità e l'ironia: perfetto se preferisci una guida chiara e scorrevole."
+    },
+    {
+      name: "Le Grand Eitteilla",
+      icon: "✨",
+      description: "Uno dei primi mazzi predittivi con sistema rigoroso. Offre risposte ordinate e autorevoli.",
+      forWho: "Per chi apprezza i metodi storici: scegli questo mazzo se cerchi una struttura codificata."
+    },
+    {
+      name: "Petit Eitteilla",
+      icon: "🃏",
+      description: "Versione più veloce e quotidiana dell'Eitteilla. Domande dirette, linguaggio semplice.",
+      forWho: "Per chi vuole rapidità e concretezza: indicato per risposte pratiche di tutti i giorni."
+    },
+    {
+      name: "Sola Busca",
+      icon: "⭐",
+      description: "Mazzo storico rinascimentale ricco di alchimia. Immagini uniche per letture profonde.",
+      forWho: "Per gli amanti dell'arte e della cultura: perfetto se desideri una lettura sofisticata e simbolica."
+    },
+    {
+      name: "Motherpeace",
+      icon: "🌙",
+      description: "Mazzo circolare ispirato alla spiritualità femminile. Approccio intuitivo e empatico.",
+      forWho: "Per chi cerca energia femminile e introspezione: ideale per ascoltare la tua voce interiore."
+    },
+    {
+      name: "Sibille",
+      icon: "🔮",
+      description: "Carte popolari dal linguaggio diretto. Dipinge scene di vita quotidiana con chiarezza.",
+      forWho: "Per chi desidera parole chiare e immagini immediate: adatto a chi vuole vedere i dettagli della sua storia."
+    }
   ];
 
   const operatorCategories = [
@@ -160,11 +220,11 @@ function ConsultoPageContent() {
         ))}
       </div>
 
-      <div className="relative pt-20 pb-16 px-4 flex flex-col items-center justify-center min-h-screen max-w-full">
+      <div className="relative pt-24 md:pt-20 pb-16 px-4 flex flex-col items-center justify-center min-h-screen max-w-full">
         {/* Configuration Overlay - Only shown before consultation starts */}
         {!consultationStarted && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-4xl mx-auto">
+          <div className="absolute top-20 left-0 right-0 bottom-0 md:inset-0 bg-black/60 backdrop-blur-sm z-20 flex flex-col items-center justify-start p-4 pt-8 md:pt-4 overflow-y-auto">
+            <div className="w-full max-w-4xl mx-auto mt-4 md:mt-0">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-playfair font-bold text-white mb-4">
                   Configura il Tuo Consulto
@@ -205,36 +265,23 @@ function ConsultoPageContent() {
                 <h3 className="text-xl font-semibold text-white mb-4 text-center">
                   2. Scegli il tuo mazzo di carte
                 </h3>
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                  {tarotDecks.map((deck, index) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                  {tarotDecks.map((deck) => (
                     <button
-                      key={deck}
-                      onClick={() => setSelectedDeck(deck)}
-                      className={`p-3 rounded-lg border transition-all duration-300 text-center transform hover:scale-105 ${
-                        selectedDeck === deck
-                          ? "border-sage-400 bg-sage-600/30 text-white"
+                      key={deck.name}
+                      onClick={() => setSelectedDeck(deck.name)}
+                      className={`p-4 rounded-lg border transition-all duration-300 text-left hover:scale-105 ${
+                        selectedDeck === deck.name
+                          ? "border-sage-400 bg-sage-600/30 text-white scale-105"
                           : "border-sage-400/30 bg-white/10 text-sage-300 hover:border-sage-400/60 hover:bg-sage-600/20"
                       }`}
                     >
-                      <div className="text-lg mb-1">
-                        {
-                          [
-                            "🔮",
-                            "🌙",
-                            "⭐",
-                            "🃏",
-                            "✨",
-                            "🎭",
-                            "📜",
-                            "♠️",
-                            "🎪",
-                            "🌟",
-                            "🎨",
-                            "🎯",
-                          ][index]
-                        }
+                      <div className="flex items-center mb-2">
+                        <div className="text-lg mr-2 flex-shrink-0">{deck.icon}</div>
+                        <div className="text-sm font-medium leading-tight">{deck.name}</div>
                       </div>
-                      <div className="text-xs">{deck}</div>
+                      <div className="text-xs opacity-80 mb-2 leading-relaxed">{deck.description}</div>
+                      <div className="text-xs opacity-70 italic leading-relaxed">{deck.forWho}</div>
                     </button>
                   ))}
                 </div>

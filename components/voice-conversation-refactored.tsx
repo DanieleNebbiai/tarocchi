@@ -45,6 +45,7 @@ export default function VoiceConversation({
   const [isFirstUserInput, setIsFirstUserInput] = useState(true);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isPlayingFeedback, setIsPlayingFeedback] = useState(false);
+  const [isConsultationEnding, setIsConsultationEnding] = useState(false);
 
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -100,14 +101,15 @@ export default function VoiceConversation({
 
   // Handle audio ready from voice recorder
   async function handleAudioReady(audioBlob: Blob) {
+    // Check if consultation is ending before processing
+    if (isConsultationEnding) {
+      console.log('🔚 Main: Ignoring audio input - consultation is ending');
+      return;
+    }
+
     const conversationStartTime = performance.now();
-    
-    console.log('🎤 [TIMING] USER INPUT: User finished speaking', {
-      audioSize: audioBlob.size,
-      audioType: audioBlob.type,
-      conversationStep: conversation.length + 1,
-      timestamp: new Date().toISOString()
-    });
+
+    // User finished speaking
 
     // Play immediate feedback to fill silence while processing
     immediateFeedback.playImmediateFeedback();
@@ -130,16 +132,7 @@ export default function VoiceConversation({
       ];
       setConversation(newConversation);
 
-      const totalConversationTime = performance.now() - conversationStartTime;
-      
-      console.log('✅ [TIMING] CONVERSATION COMPLETE: Full turn completed', {
-        userMessage: result.userMessage,
-        aiResponse: result.aiResponse.substring(0, 100) + (result.aiResponse.length > 100 ? '...' : ''),
-        processingTime: Math.round(processingEndTime - processingStartTime) + 'ms',
-        totalTurnTime: Math.round(totalConversationTime) + 'ms',
-        conversationLength: newConversation.length,
-        timestamp: new Date().toISOString()
-      });
+      // Conversation turn completed
     } catch (error) {
       console.error("❌ Main: Error processing audio:", error);
       onError?.(error as Error);
@@ -158,39 +151,35 @@ export default function VoiceConversation({
 
   // Handle TTS end
   function handleTTSEnd() {
-    console.log("🔇 Main: AI finished speaking - restarting listening");
     setIsAISpeaking(false);
+
+    // Don't restart if consultation is ending
+    if (isConsultationEnding) {
+      return;
+    }
 
     // Restart listening after AI finishes
     setTimeout(() => {
+      if (isConsultationEnding) return;
+
       if (!sessionStartTime) {
-        console.log(
-          "🔄 Main: Restarting session and listening after AI speech"
-        );
         setSessionStartTime(new Date());
         voiceRecorder.startRecording();
       } else if (!isListening && !isRecording) {
-        console.log("🔄 Main: Restarting listening after AI speech");
         voiceRecorder.startRecording();
-      } else {
-        console.log(
-          "⚠️ Main: Cannot restart - still active (listening:",
-          isListening,
-          "recording:",
-          isRecording,
-          ")"
-        );
       }
-    }, 500); // Small delay to ensure TTS cleanup
+    }, 500);
   }
 
   // Handle TTS error
   function handleTTSError() {
-    console.log("❌ Main: AI audio error - restarting listening");
     setIsAISpeaking(false);
 
-    // Restart even on error
+    if (isConsultationEnding) return;
+
     setTimeout(() => {
+      if (isConsultationEnding) return;
+
       if (!sessionStartTime) {
         setSessionStartTime(new Date());
       }
@@ -202,12 +191,11 @@ export default function VoiceConversation({
 
   // Handle consultation completion
   function handleConsultationComplete() {
-    console.log("🔚 Main: Consultation completed - ending session automatically");
-
-    // Stop all audio processing
+    console.log("🔚 Consultation completed - ending session");
+    setIsConsultationEnding(true);
     setIsAISpeaking(false);
+    voiceRecorder.stopRecording();
 
-    // End conversation after a short delay to let the final message play
     setTimeout(() => {
       endConversation();
     }, 2000);
@@ -215,14 +203,10 @@ export default function VoiceConversation({
 
   // Start tracking usage every second
   const startUsageTracking = () => {
-    console.log("Main: Starting usage tracking interval");
     sessionIntervalRef.current = setInterval(() => {
       // Only track usage when actually listening or processing
       if (isListening || isProcessing) {
-        console.log(
-          "Main: Usage tracking tick - session active"
-        );
-        // No need to check limits during conversation - we check at start
+        // Session is active - no need to check limits during conversation
       }
     }, 1000);
   };
@@ -289,6 +273,7 @@ export default function VoiceConversation({
       setSessionStartTime(null);
       setHasStarted(false);
       setIsFirstUserInput(true);
+      setIsConsultationEnding(false); // Reset the ending flag
       onDisconnect?.();
 
       console.log("Main: Conversation ended");
