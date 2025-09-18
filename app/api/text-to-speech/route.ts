@@ -7,10 +7,15 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   const apiStartTime = performance.now();
-  
+
   try {
     const parseStart = performance.now();
-    const { text, voice = "nova", category, immediate = false } = await request.json();
+    const {
+      text,
+      voice = "nova",
+      category,
+      immediate = false,
+    } = await request.json();
     const parseEnd = performance.now();
 
     // Get voice based on category (all female voices)
@@ -37,26 +42,26 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('🔊 [TIMING] TTS API: Starting text-to-speech conversion', {
+    console.log("🔊 [TIMING] TTS API: Starting text-to-speech conversion", {
       textLength: text.length,
-      textPreview: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+      textPreview: text.substring(0, 50) + (text.length > 50 ? "..." : ""),
       selectedVoice,
       category,
       immediate: immediate,
       parseTime: Math.round(parseEnd - parseStart),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     const ttsStart = performance.now();
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1", // Fastest TTS model instead of tts-1-hd
+      model: "tts-1", // Standard TTS model
       voice: selectedVoice as any,
       input: text,
-      instructions: immediate 
+      instructions: immediate
         ? "Parla in modo naturale e spontaneo, come una cartomante che risponde istintivamente."
         : "Parla con un tono mistico, caldo e professionale come una cartomante italiana.",
       response_format: "mp3",
-      speed: immediate ? 0.75 : 0.85, // Slower for immediate feedback, normal for main responses
+      speed: immediate ? 0.85 : 0.85, // Slower for immediate feedback, normal for main responses
     });
     const ttsEnd = performance.now();
 
@@ -64,13 +69,13 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await mp3.arrayBuffer());
     const bufferEnd = performance.now();
     const totalApiTime = performance.now() - apiStartTime;
-    
-    console.log('✅ [TIMING] TTS API: Audio generation completed', {
+
+    console.log("✅ [TIMING] TTS API: Audio generation completed", {
       openaiTtsTime: Math.round(ttsEnd - ttsStart),
       bufferTime: Math.round(bufferEnd - bufferStart),
       totalApiTime: Math.round(totalApiTime),
       audioSize: buffer.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return new NextResponse(buffer, {

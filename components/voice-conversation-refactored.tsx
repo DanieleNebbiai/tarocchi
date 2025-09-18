@@ -88,6 +88,7 @@ export default function VoiceConversation({
     onTTSStart: () => setIsAISpeaking(true),
     onTTSEnd: handleTTSEnd,
     onTTSError: handleTTSError,
+    onConsultationComplete: handleConsultationComplete,
   });
 
   // Initialize immediate feedback system
@@ -197,6 +198,19 @@ export default function VoiceConversation({
         voiceRecorder.startRecording();
       }
     }, 500);
+  }
+
+  // Handle consultation completion
+  function handleConsultationComplete() {
+    console.log("🔚 Main: Consultation completed - ending session automatically");
+
+    // Stop all audio processing
+    setIsAISpeaking(false);
+
+    // End conversation after a short delay to let the final message play
+    setTimeout(() => {
+      endConversation();
+    }, 2000);
   }
 
   // Start tracking usage every second

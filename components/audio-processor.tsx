@@ -10,7 +10,11 @@ interface AudioProcessorProps {
   onTTSStart: () => void;
   onTTSEnd: () => void;
   onTTSError: () => void;
+  onConsultationComplete?: () => void;
 }
+
+// Generate a persistent session ID for the component lifecycle
+const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 interface ConversationMessage {
   role: string;
@@ -25,8 +29,10 @@ export default function AudioProcessor({
   onTTSStart,
   onTTSEnd,
   onTTSError,
+  onConsultationComplete,
 }: AudioProcessorProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sessionIdRef = useRef<string>(generateSessionId());
 
   // Process audio with OpenAI Whisper
   const processAudioWithWhisper = async (audioBlob: Blob): Promise<string> => {
@@ -82,7 +88,7 @@ export default function AudioProcessor({
   const generateAIResponse = async (
     message: string,
     conversation: ConversationMessage[]
-  ): Promise<string> => {
+  ): Promise<{ text: string; isComplete: boolean }> => {
     const startTime = performance.now();
     try {
       console.log('🧠 [TIMING] AudioProcessor: Getting AI response...', {
@@ -94,6 +100,9 @@ export default function AudioProcessor({
       });
       
       const requestStart = performance.now();
+      // Use persistent sessionId for caching when no userId
+      const sessionId = userId || sessionIdRef.current;
+
       // Get AI response
       const chatResponse = await fetch("/api/chat", {
         method: "POST",
@@ -106,6 +115,7 @@ export default function AudioProcessor({
           category: selectedCategory,
           selectedDeck,
           userId, // Pass user ID for name extraction and database updates
+          sessionId, // Pass session ID for caching without userId
           conversation, // Pass conversation history for context
         }),
       });
@@ -116,20 +126,21 @@ export default function AudioProcessor({
       }
 
       const parseStart = performance.now();
-      const { text: aiResponse } = await chatResponse.json();
+      const { text: aiResponse, isConsultationComplete = false } = await chatResponse.json();
       const parseEnd = performance.now();
       const totalTime = performance.now() - startTime;
-      
+
       console.log('🧠 [TIMING] AudioProcessor: AI response generated', {
         response: aiResponse.substring(0, 100) + (aiResponse.length > 100 ? '...' : ''),
         responseLength: aiResponse.length,
+        isConsultationComplete,
         networkTime: Math.round(requestEnd - requestStart),
         parseTime: Math.round(parseEnd - parseStart),
         totalTime: Math.round(totalTime),
         timestamp: new Date().toISOString()
       });
-      
-      return aiResponse;
+
+      return { text: aiResponse, isComplete: isConsultationComplete };
     } catch (error) {
       const errorTime = performance.now() - startTime;
       console.error("🧠 [TIMING] AudioProcessor: Error generating AI response", {
@@ -279,22 +290,32 @@ export default function AudioProcessor({
         ...conversation,
         { role: "user", content: userMessage }
       ];
-      const aiResponse = await generateAIResponse(userMessage, currentConversation);
+      const aiResult = await generateAIResponse(userMessage, currentConversation);
       const step2End = performance.now();
-      
+
       // Step 3: Convert AI response to speech
       const step3Start = performance.now();
-      await convertToSpeech(aiResponse);
+      await convertToSpeech(aiResult.text);
       const step3End = performance.now();
+
+      // Check if consultation is complete and trigger callback
+      if (aiResult.isComplete && onConsultationComplete) {
+        console.log('🔚 [CONSULTATION] Triggering consultation complete callback');
+        // Delay the callback slightly to let the TTS finish
+        setTimeout(() => {
+          onConsultationComplete();
+        }, 1000);
+      }
       
       const totalTime = performance.now() - overallStartTime;
       
       // Log complete flow summary
       console.log('✅ [TIMING] CONVERSATION FLOW: Complete flow finished', {
         userMessage: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : ''),
-        aiResponse: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : ''),
+        aiResponse: aiResult.text.substring(0, 50) + (aiResult.text.length > 50 ? '...' : ''),
+        isConsultationComplete: aiResult.isComplete,
         step1_STT_Time: Math.round(step1End - step1Start) + 'ms',
-        step2_AI_Time: Math.round(step2End - step2Start) + 'ms', 
+        step2_AI_Time: Math.round(step2End - step2Start) + 'ms',
         step3_TTS_Time: Math.round(step3End - step3Start) + 'ms',
         totalFlowTime: Math.round(totalTime) + 'ms',
         conversationAfterUser: currentConversation.length,
@@ -305,8 +326,8 @@ export default function AudioProcessor({
           ttsPercentage: Math.round(((step3End - step3Start) / totalTime) * 100) + '%'
         }
       });
-      
-      return { userMessage, aiResponse };
+
+      return { userMessage, aiResponse: aiResult.text };
     } catch (error) {
       const errorTime = performance.now() - overallStartTime;
       console.error('🔄 [TIMING] CONVERSATION FLOW: Error in conversation flow', {
